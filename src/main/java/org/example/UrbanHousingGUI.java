@@ -97,7 +97,7 @@ public class UrbanHousingGUI extends JFrame {
 
     //BUILDING METHODS
     private void showBuildingActions() {
-        actionPanel.removeAll(); // Очищаем панель перед добавлением новых кнопок
+        actionPanel.removeAll();
 
         //"Add Building"
         JButton addBuildingButton = new JButton("Add Building");

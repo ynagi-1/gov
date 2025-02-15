@@ -16,7 +16,7 @@ public class Room {
         return id;
     }
 
-    public void setId(int id) {  // Метод для установки ID
+    public void setId(int id) {
         this.id = id;
     }
 
