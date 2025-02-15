@@ -3,9 +3,9 @@ package org.example;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.*;
 
 public class UrbanHousingGUI extends JFrame {
-    private City city = new City("Metropolis");
     private JTextArea outputArea = new JTextArea();
     private JButton cityButton, buildingButton, roomButton;
     private JPanel actionPanel;
@@ -16,7 +16,7 @@ public class UrbanHousingGUI extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Панель для выбора (City, Building, Room)
+
         JPanel selectPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
         selectPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -29,12 +29,10 @@ public class UrbanHousingGUI extends JFrame {
         selectPanel.add(roomButton);
         add(selectPanel, BorderLayout.NORTH);
 
-        // Панель для действий
         actionPanel = new JPanel(new GridLayout(4, 1, 10, 10));
         actionPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         add(actionPanel, BorderLayout.CENTER);
 
-        // Текстовое поле для вывода информации
         outputArea.setEditable(false);
         outputArea.setFont(new Font("Arial", Font.PLAIN, 14));
         outputArea.setMargin(new Insets(10, 10, 10, 10));
@@ -45,132 +43,205 @@ public class UrbanHousingGUI extends JFrame {
         roomButton.addActionListener(e -> showRoomActions());
     }
 
+    // CITY METHODS
     private void showCityActions() {
-        actionPanel.removeAll();
-        actionPanel.add(createButton("Add City", e -> addCity()));
-        actionPanel.add(createButton("Show City", e -> showCity()));
-        actionPanel.revalidate();
+        actionPanel.removeAll(); // Очистка панели перед добавлением новых кнопок
+
+        // "Add City"
+        JButton addCityButton = new JButton("Add City");
+        addCityButton.addActionListener(e -> addCity());
+        actionPanel.add(addCityButton);
+
+        // "Show Cities"
+        JButton showCitiesButton = new JButton("Show Cities");
+        showCitiesButton.addActionListener(e -> showCities());
+        actionPanel.add(showCitiesButton);
+
+        actionPanel.revalidate(); // Перерисовываем панель
         actionPanel.repaint();
     }
 
-    private void showBuildingActions() {
-        actionPanel.removeAll();
-        actionPanel.add(createButton("Add Building", e -> addBuilding()));
-        actionPanel.add(createButton("Show Buildings", e -> showBuildings()));
-        actionPanel.add(createButton("Remove Building", e -> removeBuilding()));
-        actionPanel.add(createButton("Update Building", e -> updateBuilding()));
-        actionPanel.revalidate();
-        actionPanel.repaint();
-    }
-
-    private void showRoomActions() {
-        actionPanel.removeAll();
-        actionPanel.add(createButton("Add Room", e -> addRoom()));
-        actionPanel.add(createButton("Show Rooms", e -> showRooms()));
-        actionPanel.revalidate();
-        actionPanel.repaint();
-    }
-
-    private JButton createButton(String text, ActionListener actionListener) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Arial", Font.BOLD, 14));
-        button.setBackground(new Color(70, 130, 180));
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.addActionListener(actionListener);
-        return button;
-    }
 
     private void addCity() {
         String cityName = JOptionPane.showInputDialog("Enter City Name:");
-        if (cityName != null && !cityName.isEmpty()) {
-            city.setName(cityName);
-            outputArea.append("City updated to: " + cityName + "\n");
+        try (Connection conn = DatabaseManager.getConnection()) {
+            String query = "INSERT INTO City (name) VALUES (?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, cityName);
+                stmt.executeUpdate();
+                outputArea.append("City added: " + cityName + "\n");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    private void showCity() {
-        outputArea.setText("Current City: " + city.getName() + "\n");
+    private void showCities() {
+        outputArea.setText("");
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM City");
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (!rs.isBeforeFirst()) {
+                outputArea.append("No cities found.\n");
+            } else {
+                while (rs.next()) {
+                    String cityName = rs.getString("name");
+                    outputArea.append("City: " + cityName + "\n");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
-    
+
+    //BUILDING METHODS
+    private void showBuildingActions() {
+        actionPanel.removeAll(); // Очищаем панель перед добавлением новых кнопок
+
+        //"Add Building"
+        JButton addBuildingButton = new JButton("Add Building");
+        addBuildingButton.addActionListener(e -> addBuilding());
+        actionPanel.add(addBuildingButton);
+
+        //"Show Buildings"
+        JButton showBuildingsButton = new JButton("Show Buildings");
+        showBuildingsButton.addActionListener(e -> showBuildings());
+        actionPanel.add(showBuildingsButton);
+
+        //"Remove Building"
+        JButton removeBuildingButton = new JButton("Remove Building");
+        removeBuildingButton.addActionListener(e -> removeBuilding());
+        actionPanel.add(removeBuildingButton);
+
+
+        actionPanel.revalidate();
+        actionPanel.repaint();
+    }
+
 
     private void addBuilding() {
         String street = JOptionPane.showInputDialog("Enter Street Name:");
         String house = JOptionPane.showInputDialog("Enter House Number:");
         double payment = Double.parseDouble(JOptionPane.showInputDialog("Enter Payment per SqM:"));
 
-        Building building = new Building(street, house, payment, city);
-        city.addBuilding(building);
-        outputArea.append("Building added: " + street + " " + house + "\n");
+        try (Connection conn = DatabaseManager.getConnection()) {
+            String query = "INSERT INTO Building (street_name, house_number, payment_per_sqm) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, street);
+                stmt.setString(2, house);
+                stmt.setDouble(3, payment);
+                stmt.executeUpdate();
+                outputArea.append("Building added: " + street + " " + house + "\n");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void showBuildings() {
         outputArea.setText("");
-        if (city.getBuildings().isEmpty()) {
-            outputArea.append("No buildings found.\n");
-        } else {
-            for (Building b : city.getBuildings()) {
-                outputArea.append("Building: " + b.getStreetName() + " " + b.getHouseNumber() + ", Total Area: " + b.getTotalArea() + "\n");
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Building");
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (!rs.isBeforeFirst()) {
+                outputArea.append("No buildings found.\n");
+            } else {
+                while (rs.next()) {
+                    String street = rs.getString("street_name");
+                    String house = rs.getString("house_number");
+                    double payment = rs.getDouble("payment_per_sqm");
+                    outputArea.append("Building: " + street + " " + house + ", Payment per SqM: " + payment + "\n");
+                }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     private void removeBuilding() {
         String street = JOptionPane.showInputDialog("Enter Street Name:");
         String house = JOptionPane.showInputDialog("Enter House Number:");
-        Building building = city.findBuilding(street, house);
-        if (building != null) {
-            city.removeBuilding(building);
-            outputArea.append("Building removed: " + street + " " + house + "\n");
-        } else {
-            outputArea.append("Building not found: " + street + " " + house + "\n");
+
+        try (Connection conn = DatabaseManager.getConnection()) {
+            String query = "DELETE FROM Building WHERE street_name = ? AND house_number = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, street);
+                stmt.setString(2, house);
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows > 0) {
+                    outputArea.append("Building removed: " + street + " " + house + "\n");
+                } else {
+                    outputArea.append("Building not found: " + street + " " + house + "\n");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    private void updateBuilding() {
-        String street = JOptionPane.showInputDialog("Enter Street Name:");
-        String house = JOptionPane.showInputDialog("Enter House Number:");
-        double payment = Double.parseDouble(JOptionPane.showInputDialog("Enter new Payment per SqM:"));
 
-        Building building = city.findBuilding(street, house);
-        if (building != null) {
-            city.updateBuilding(street, house, payment);
-            outputArea.append("Building updated: " + street + " " + house + "\n");
-        } else {
-            outputArea.append("Building not found: " + street + " " + house + "\n");
-        }
+
+    //  ROOM METHODS
+    private void showRoomActions() {
+        actionPanel.removeAll(); // Очищаем панель перед добавлением новых кнопок
+
+        // "Add Room"
+        JButton addRoomButton = new JButton("Add Room");
+        addRoomButton.addActionListener(e -> addRoom());
+        actionPanel.add(addRoomButton);
+
+        //  "Show Rooms"
+        JButton showRoomsButton = new JButton("Show Rooms");
+        showRoomsButton.addActionListener(e -> showRooms());
+        actionPanel.add(showRoomsButton);
+
+        actionPanel.revalidate();
+        actionPanel.repaint();
     }
+
 
     private void addRoom() {
-        String street = JOptionPane.showInputDialog("Enter the street name:");
-        String house = JOptionPane.showInputDialog("Enter the house number:");
-        Building building = city.findBuilding(street, house);
-        if (building != null) {
-            String roomNumber = JOptionPane.showInputDialog("Enter the room number:");
-            double area = Double.parseDouble(JOptionPane.showInputDialog("Enter the room area:"));
-            Room room = new Room(roomNumber, area, building);
-            building.addRoom(room);
-            outputArea.append("Room added: " + roomNumber + " to " + street + " " + house + "\n");
-        } else {
-            outputArea.append("Building not found: " + street + " " + house + "\n");
+        String street = JOptionPane.showInputDialog("Enter Building Street:");
+        String house = JOptionPane.showInputDialog("Enter Building Number:");
+        int roomNumber = Integer.parseInt(JOptionPane.showInputDialog("Enter Room Number:"));
+        double size = Double.parseDouble(JOptionPane.showInputDialog("Enter Room Size (sqm):"));
+
+        try (Connection conn = DatabaseManager.getConnection()) {
+            String query = "INSERT INTO Room (street_name, house_number, room_number, size) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, street);
+                stmt.setString(2, house);
+                stmt.setInt(3, roomNumber);
+                stmt.setDouble(4, size);
+                stmt.executeUpdate();
+                outputArea.append("Room added: " + roomNumber + " in " + street + " " + house + "\n");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     private void showRooms() {
-        String street = JOptionPane.showInputDialog("Enter Street Name:");
-        String house = JOptionPane.showInputDialog("Enter House Number:");
-        Building building = city.findBuilding(street, house);
-        if (building != null) {
-            outputArea.setText("Rooms in " + street + " " + house + ":\n");
-            if (building.getRooms().isEmpty()) {
+        outputArea.setText("");
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Room");
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (!rs.isBeforeFirst()) {
                 outputArea.append("No rooms found.\n");
             } else {
-                for (Room r : building.getRooms()) {
-                    outputArea.append("Room: " + r.getRoomNumber() + ", Area: " + r.getArea() + "\n");
+                while (rs.next()) {
+                    String street = rs.getString("street_name");
+                    String house = rs.getString("house_number");
+                    int roomNumber = rs.getInt("room_number");
+                    double size = rs.getDouble("size");
+                    outputArea.append("Room " + roomNumber + " in " + street + " " + house + ", Size: " + size + " sqm\n");
                 }
             }
-        } else {
-            outputArea.append("Building not found: " + street + " " + house + "\n");
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 

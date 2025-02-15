@@ -1,6 +1,7 @@
 package org.example;
 
 public class Room {
+    private int id;
     private String roomNumber;
     private double area;
     private Building building;
@@ -11,12 +12,20 @@ public class Room {
         this.building = building;
     }
 
-    public double getArea() {
-        return area;
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {  // Метод для установки ID
+        this.id = id;
     }
 
     public String getRoomNumber() {
         return roomNumber;
+    }
+
+    public double getArea() {
+        return area;
     }
 
     public Building getBuilding() {
