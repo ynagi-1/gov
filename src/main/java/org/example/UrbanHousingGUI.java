@@ -185,7 +185,7 @@ public class UrbanHousingGUI extends JFrame {
 
     //  ROOM METHODS
     private void showRoomActions() {
-        actionPanel.removeAll(); // Очищаем панель перед добавлением новых кнопок
+        actionPanel.removeAll();
 
         // "Add Room"
         JButton addRoomButton = new JButton("Add Room");
